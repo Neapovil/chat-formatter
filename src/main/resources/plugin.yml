@@ -6,6 +6,8 @@ author: Neapovil
 website: https://github.com/Neapovil/chat-formatter
 depend:
   - CommandAPI
+softdepend:
+  - PermissionsYaml
 permissions:
   chatformatter.command:
     default: op

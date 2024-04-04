@@ -1,0 +1,4 @@
+{
+  "format": "<permissionsyaml><gray><player_name></gray> > <white>",
+  "formatOp": "<red>OP</red> <aqua><player_name></aqua> > <gray>"
+}
