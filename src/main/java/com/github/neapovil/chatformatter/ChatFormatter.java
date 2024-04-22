@@ -1,13 +1,13 @@
 package com.github.neapovil.chatformatter;
 
-import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.neapovil.chatformatter.chat.ChatRenderer;
+import com.github.neapovil.core.Core;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -22,20 +22,25 @@ public final class ChatFormatter extends JavaPlugin implements Listener
     public ConfigResource configResource;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     public final MiniMessage miniMessage = MiniMessage.miniMessage();
+    public final Path configPath = this.getDataFolder().toPath().resolve("config.json");
 
     @Override
     public void onEnable()
     {
         instance = this;
 
-        try
-        {
-            this.load();
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+        final Core core = Core.instance();
+
+        core.loadResource(this, this.configPath).whenComplete((result, ex) -> {
+            if (ex == null)
+            {
+                this.configResource = this.gson.fromJson(result, ConfigResource.class);
+            }
+            else
+            {
+                ex.printStackTrace();
+            }
+        });
 
         this.getServer().getPluginManager().registerEvents(this, this);
 
@@ -43,16 +48,18 @@ public final class ChatFormatter extends JavaPlugin implements Listener
                 .withPermission("chatformatter.command.reload")
                 .withArguments(new LiteralArgument("reload"))
                 .executes((sender, args) -> {
-                    try
-                    {
-                        this.load();
-                        sender.sendMessage("Config reloaded");
-                    }
-                    catch (IOException e)
-                    {
-                        sender.sendRichMessage("<red>Unable to reload config");
-                        this.getLogger().severe(e.getMessage());
-                    }
+                    core.loadResource(this, this.configPath).whenComplete((result, ex) -> {
+                        if (ex == null)
+                        {
+                            this.configResource = this.gson.fromJson(result, ConfigResource.class);
+                            sender.sendMessage("Config reloaded");
+                        }
+                        else
+                        {
+                            sender.sendRichMessage("<red>Unable to reload config: " + ex.getMessage());
+                            this.getLogger().severe(ex.getMessage());
+                        }
+                    });
                 })
                 .register();
     }
@@ -60,19 +67,6 @@ public final class ChatFormatter extends JavaPlugin implements Listener
     public static ChatFormatter instance()
     {
         return instance;
-    }
-
-    public void load() throws IOException
-    {
-        this.saveResource("config.json", false);
-        final String string = Files.readString(this.getDataFolder().toPath().resolve("config.json"));
-        this.configResource = this.gson.fromJson(string, ConfigResource.class);
-    }
-
-    public void save() throws IOException
-    {
-        final String string = this.gson.toJson(this.configResource);
-        Files.write(this.getDataFolder().toPath().resolve("config.json"), string.getBytes());
     }
 
     @EventHandler

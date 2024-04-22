@@ -22,6 +22,7 @@ dependencies {
   compileOnly group: "dev.jorel", name: "commandapi-bukkit-core", version: "9.3.0"
   
   compileOnly fileTree(dir: "../permissions-yaml/build/libs", include: "*.jar")
+  compileOnly fileTree(dir: "../core/build/libs", include: "*.jar")
 }
 
 tasks {
