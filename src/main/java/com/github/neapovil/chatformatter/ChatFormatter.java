@@ -1,6 +1,7 @@
 package com.github.neapovil.chatformatter;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -30,18 +31,7 @@ public final class ChatFormatter extends JavaPlugin implements Listener
     {
         instance = this;
 
-        final Core core = Core.instance();
-
-        core.loadResource(this, this.configPath).whenComplete((result, ex) -> {
-            if (ex == null)
-            {
-                this.configResource = this.gson.fromJson(result, ConfigResource.class);
-            }
-            else
-            {
-                ex.printStackTrace();
-            }
-        });
+        this.load();
 
         this.getServer().getPluginManager().registerEvents(this, this);
 
@@ -49,18 +39,16 @@ public final class ChatFormatter extends JavaPlugin implements Listener
                 .withPermission("chatformatter.command.reload")
                 .withArguments(new LiteralArgument("reload"))
                 .executes((sender, args) -> {
-                    core.loadResource(this, this.configPath).whenCompleteAsync((result, ex) -> {
+                    this.load().whenComplete((result, ex) -> {
                         if (ex == null)
                         {
-                            this.configResource = this.gson.fromJson(result, ConfigResource.class);
                             sender.sendMessage("Config reloaded");
                         }
                         else
                         {
                             sender.sendRichMessage("<red>Unable to reload config: " + ex.getMessage());
-                            this.getLogger().severe(ex.getMessage());
                         }
-                    }, MCUtil.MAIN_EXECUTOR);
+                    });
                 })
                 .register();
     }
@@ -68,6 +56,17 @@ public final class ChatFormatter extends JavaPlugin implements Listener
     public static ChatFormatter instance()
     {
         return instance;
+    }
+
+    private CompletableFuture<String> load()
+    {
+        final Core core = Core.instance();
+        return core.loadResource(this, this.configPath).whenCompleteAsync((result, ex) -> {
+            if (result != null)
+            {
+                this.configResource = this.gson.fromJson(result, ConfigResource.class);
+            }
+        }, MCUtil.MAIN_EXECUTOR);
     }
 
     @EventHandler
